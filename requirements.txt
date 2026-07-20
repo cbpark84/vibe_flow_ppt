@@ -1,0 +1,16 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+pydantic==2.10.3
+pydantic-settings==2.6.1
+litellm==1.55.8
+python-pptx==1.0.2
+python-dotenv==1.0.1
+aiofiles==24.1.0
+httpx>=0.24.0
+
+# Phase 2 - Design Engine
+colorthief==0.2.1
+palettable==3.3.3
+Pillow>=10.4.0
+Jinja2>=3.1.4

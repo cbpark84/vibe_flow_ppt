@@ -1,0 +1,12 @@
+{
+  "name": "academic",
+  "colors": {
+    "primary":    "#1E40AF",
+    "secondary":  "#92400E",
+    "accent":     "#065F46",
+    "background": "#FFFFFF",
+    "surface":    "#F1F5F9",
+    "text":       "#1E293B",
+    "text_muted": "#475569"
+  }
+}

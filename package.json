@@ -1,0 +1,12 @@
+{
+  "name": "vibe_flow_ppt",
+  "version": "0.2.0",
+  "description": "Marp CLI for HTML presentation rendering",
+  "private": true,
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.1.1"
+  },
+  "scripts": {
+    "marp": "marp"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "ko": {
+    "modern":    {"title": "Noto Sans KR",    "body": "Noto Sans KR"},
+    "academic":  {"title": "Noto Serif KR",   "body": "Noto Sans KR"},
+    "creative":  {"title": "Black Han Sans",  "body": "Noto Sans KR"},
+    "minimal":   {"title": "Noto Sans KR",    "body": "Noto Sans KR"},
+    "corporate": {"title": "Noto Sans KR",    "body": "Noto Sans KR"}
+  },
+  "en": {
+    "modern":    {"title": "Montserrat",       "body": "Source Sans 3"},
+    "academic":  {"title": "Source Serif 4",   "body": "Source Sans 3"},
+    "creative":  {"title": "Playfair Display", "body": "Lato"},
+    "minimal":   {"title": "Inter",            "body": "Inter"},
+    "corporate": {"title": "Roboto",           "body": "Roboto"}
+  }
+}

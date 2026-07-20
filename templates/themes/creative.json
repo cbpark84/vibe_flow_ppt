@@ -1,0 +1,12 @@
+{
+  "name": "creative",
+  "colors": {
+    "primary":    "#DB2777",
+    "secondary":  "#7C3AED",
+    "accent":     "#F59E0B",
+    "background": "#0F0F0F",
+    "surface":    "#1A1A2E",
+    "text":       "#F9FAFB",
+    "text_muted": "#9CA3AF"
+  }
+}

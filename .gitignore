@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# 환경변수
+.env
+.env.local
+.env.*.local
+
+# 생성된 파일
+output/
+*.pptx
+*.html
+
+# Node.js
+node_modules/
+web/node_modules/
+web/.next/
+web/out/
+web/.pnpm-store/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 폰트 캐시 (자동 다운로드)
+templates/fonts/cache/

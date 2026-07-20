@@ -1,0 +1,12 @@
+{
+  "name": "minimal",
+  "colors": {
+    "primary":    "#111827",
+    "secondary":  "#374151",
+    "accent":     "#6366F1",
+    "background": "#FFFFFF",
+    "surface":    "#FAFAFA",
+    "text":       "#111827",
+    "text_muted": "#6B7280"
+  }
+}
