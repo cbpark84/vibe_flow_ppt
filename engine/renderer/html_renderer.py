@@ -1,5 +1,7 @@
 import logging
+import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Union
@@ -11,6 +13,31 @@ logger = logging.getLogger(__name__)
 
 TEMP_DIR = Path(tempfile.gettempdir()) / "vibe_flow_ppt"
 SLIDE_SEPARATOR = "\n\n---\n\n"
+
+
+def _get_npx() -> str:
+    """
+    플랫폼별 npx 실행 파일 경로 반환.
+
+    Windows: Node.js 설치 시 npx.cmd 로 등록됨
+    Mac/Linux: npx 로 등록됨
+    shutil.which 로 PATH 전체를 탐색해 정확한 경로를 반환.
+    """
+    if sys.platform == "win32":
+        cmd = shutil.which("npx.cmd") or shutil.which("npx")
+        if cmd:
+            return cmd
+        raise FileNotFoundError(
+            "npx를 찾을 수 없습니다. Node.js가 설치되어 있는지 확인해주세요.\n"
+            "설치: https://nodejs.org"
+        )
+    cmd = shutil.which("npx")
+    if cmd:
+        return cmd
+    raise FileNotFoundError(
+        "npx를 찾을 수 없습니다. Node.js가 설치되어 있는지 확인해주세요.\n"
+        "Mac: brew install node  |  https://nodejs.org"
+    )
 
 
 class HTMLRenderer:
@@ -46,18 +73,19 @@ class HTMLRenderer:
             out_html = job_dir / "presentation.html"
 
         try:
+            npx = _get_npx()
             subprocess.run(
-                ["npx", "--yes", "@marp-team/marp-cli",
+                [npx, "--yes", "@marp-team/marp-cli",
                  str(tmp_md), "--html", "--output", str(out_html)],
                 check=True,
                 capture_output=True,
                 timeout=120,
             )
+        except FileNotFoundError as e:
+            raise RuntimeError(str(e)) from e
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode(errors="ignore")
             raise RuntimeError(f"Marp CLI 실패: {stderr[:300]}") from e
-        except FileNotFoundError:
-            raise RuntimeError("npx를 찾을 수 없습니다. Node.js가 설치되어 있는지 확인해주세요.")
         finally:
             tmp_md.unlink(missing_ok=True)
 
