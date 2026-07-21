@@ -40,3 +40,6 @@ desktop.ini
 
 # 폰트 캐시 (자동 다운로드)
 templates/fonts/cache/
+
+# 로그 파일
+logs/*.log
