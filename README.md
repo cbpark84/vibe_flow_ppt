@@ -112,7 +112,8 @@ brew install node
 # pnpm 설치
 npm install -g pnpm
 
-# 웹앱 패키지 설치
+# 패키지 설치 (루트: Marp CLI / 웹앱: Next.js)
+npm install
 cd web && pnpm install && cd ..
 ```
 
@@ -191,7 +192,8 @@ winget install OpenJS.NodeJS.LTS
 # 새 터미널 열고 pnpm 설치
 npm install -g pnpm
 
-# 웹앱 패키지 설치
+# 패키지 설치 (루트: Marp CLI / 웹앱: Next.js)
+npm install
 cd web
 pnpm install
 cd ..

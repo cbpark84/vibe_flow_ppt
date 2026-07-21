@@ -8,6 +8,9 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path $PSScriptRoot -Parent
 Set-Location $Root
 
+# PowerShell 7(pwsh) 우선, 없으면 기본 PowerShell 5(powershell) 사용
+$PS = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+
 function Write-Step($n, $msg) { Write-Host "[$n/4] $msg" -ForegroundColor Yellow }
 function Write-OK($msg)       { Write-Host "  v $msg" -ForegroundColor Green }
 
@@ -34,14 +37,14 @@ if ($running -eq "vibe_redis") {
 }
 
 Write-Step 2 "ARQ 워커 시작..."
-Start-Process pwsh -ArgumentList @(
+Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
     "Set-Location '$Root'; venv\Scripts\Activate.ps1; Write-Host 'ARQ Worker 시작' -ForegroundColor Cyan; arq engine.worker.settings.WorkerSettings"
 ) -WindowStyle Normal
 Write-OK "ARQ 워커 창 열림"
 
 Write-Step 3 "FastAPI 서버 시작..."
-Start-Process pwsh -ArgumentList @(
+Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
     "Set-Location '$Root'; venv\Scripts\Activate.ps1; Write-Host 'FastAPI 시작' -ForegroundColor Cyan; uvicorn api.main:app --host 0.0.0.0 --port 8000"
 ) -WindowStyle Normal
@@ -51,7 +54,7 @@ Write-Host "  서버 준비 대기 (5초)..." -ForegroundColor Gray
 Start-Sleep -Seconds 5
 
 Write-Step 4 "Next.js 웹앱 시작..."
-Start-Process pwsh -ArgumentList @(
+Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
     "Set-Location '$Root\web'; Write-Host 'Next.js 시작' -ForegroundColor Cyan; pnpm dev"
 ) -WindowStyle Normal
