@@ -255,6 +255,61 @@ pnpm dev
 
 ---
 
+## 4단계: ARQ 워커 실행 (잡 큐)
+
+vibe_flow_ppt는 ARQ 비동기 잡 큐를 사용해 PPT 생성을 백그라운드에서 처리합니다.
+
+### Redis 설치
+
+**macOS**
+```bash
+brew install redis
+brew services start redis
+```
+
+**Windows (WSL2 또는 Docker 권장)**
+```bash
+# Docker 사용
+docker run -d -p 6379:6379 redis:7-alpine
+```
+
+**Ubuntu/Debian**
+```bash
+sudo apt install redis-server
+sudo systemctl start redis
+```
+
+### ARQ 워커 실행
+
+```bash
+# 가상환경 활성화 후
+arq engine.worker.settings.WorkerSettings
+```
+
+### 3개 터미널 실행 순서
+
+| 터미널 | 명령 | 역할 |
+|--------|------|------|
+| 1 | `redis-server` | Redis 브로커 |
+| 2 | `arq engine.worker.settings.WorkerSettings` | 백그라운드 워커 |
+| 3 | `uvicorn api.main:app --reload` | FastAPI 서버 |
+| 4 | `cd web && npm run dev` | Next.js 웹앱 |
+
+### 동시 처리량 향상
+
+워커를 여러 개 실행하면 동시 처리 수가 증가합니다:
+
+```bash
+# 워커 3개 동시 실행 (최대 30개 동시 처리)
+arq engine.worker.settings.WorkerSettings &
+arq engine.worker.settings.WorkerSettings &
+arq engine.worker.settings.WorkerSettings
+```
+
+> 50명 이상의 동시 사용자가 예상된다면 `docs/SCALING.md`를 참조해 Celery로 전환하세요.
+
+---
+
 ## API 사용법
 
 ### PPT 생성

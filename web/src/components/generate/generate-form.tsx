@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -12,63 +12,29 @@ import { OutputFormatSelector } from './output-format-selector';
 import { ProviderSelect } from './provider-select';
 import { useGenerate } from '@/hooks/use-generate';
 import { useProviders } from '@/hooks/use-providers';
-import { addHistory, saveResultData } from '@/lib/history';
 import { Loader2 } from 'lucide-react';
 import type { GenerateRequest, Language, OutputFormat, PresentationStyle } from '@/types/api';
-
-const PROGRESS_STEPS = [
-  { label: '🎨 디자인 테마 빌드 중...', duration: 3000 },
-  { label: '🤖 LLM이 슬라이드를 작성 중...', duration: 20000 },
-  { label: '📄 파일 렌더링 중...', duration: 99999 },
-];
 
 export function GenerateForm() {
   const router = useRouter();
   const { mutate, isPending } = useGenerate();
   const { data: providersData } = useProviders();
 
-  const [topic, setTopic] = useState('');
-  const [style, setStyle] = useState<PresentationStyle>('modern');
-  const [color, setColor] = useState('#2563eb');
-  const [lang, setLang] = useState<Language>('ko');
+  const [topic, setTopic]   = useState('');
+  const [style, setStyle]   = useState<PresentationStyle>('modern');
+  const [color, setColor]   = useState('#2563eb');
+  const [lang, setLang]     = useState<Language>('ko');
   const [output, setOutput] = useState<OutputFormat[]>(['pptx']);
   const [provider, setProvider] = useState('');
-  const [error, setError] = useState('');
-  const [stepIdx, setStepIdx] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [error, setError]   = useState('');
 
-  // providers 로드 완료 시 첫 번째 사용 가능 모델 자동 선택
+  // 사용 가능한 첫 번째 프로바이더 자동 선택
   useEffect(() => {
     if (providersData?.providers && provider === '') {
       const first = providersData.providers.find((p) => p.available);
       if (first) setProvider(first.id);
     }
   }, [providersData, provider]);
-
-  // 진행 단계 타이머
-  useEffect(() => {
-    if (isPending) {
-      setStepIdx(0);
-      let idx = 0;
-
-      const advance = () => {
-        idx += 1;
-        if (idx < PROGRESS_STEPS.length) {
-          setStepIdx(idx);
-          timerRef.current = setTimeout(advance, PROGRESS_STEPS[idx].duration);
-        }
-      };
-
-      timerRef.current = setTimeout(advance, PROGRESS_STEPS[0].duration);
-    } else {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      setStepIdx(0);
-    }
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [isPending]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,26 +55,12 @@ export function GenerateForm() {
 
     mutate(req, {
       onSuccess: (data) => {
-        // 히스토리 + 결과 캐시 저장
-        addHistory({
-          job_id: data.job_id,
-          topic: topic.trim(),
-          style,
-          created_at: new Date().toISOString(),
-          slide_count: data.meta.slide_count,
-          provider_used: data.meta.provider_used,
+        // data = { job_id, status: "queued", message }
+        toast.success('생성 작업 등록 완료!', {
+          description: '백그라운드에서 PPT를 생성합니다...',
         });
-        saveResultData(data.job_id, data);
-
-        toast.success('프레젠테이션 생성 완료!', {
-          description: `${data.meta.slide_count}장 슬라이드 · ${data.meta.provider_used}`,
-        });
-
-        // topic + data 를 URL에 포함
-        const params = new URLSearchParams({
-          data: JSON.stringify(data),
-          topic: topic.trim(),
-        });
+        // 즉시 result 페이지로 이동 — 폴링은 result 페이지가 처리
+        const params = new URLSearchParams({ topic: topic.trim() });
         router.push(`/result/${data.job_id}?${params.toString()}`);
       },
       onError: (err) => {
@@ -141,26 +93,12 @@ export function GenerateForm() {
           {isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              생성 중...
+              등록 중...
             </>
           ) : (
             '프레젠테이션 생성'
           )}
         </Button>
-
-        {isPending && (
-          <div className="mt-3 space-y-2">
-            <p className="text-xs text-muted-foreground text-center">
-              {PROGRESS_STEPS[stepIdx].label}
-            </p>
-            <div className="h-0.5 bg-border rounded-full overflow-hidden">
-              <div
-                className="h-full bg-foreground rounded-full transition-all duration-[3000ms] ease-out"
-                style={{ width: stepIdx === 0 ? '20%' : stepIdx === 1 ? '70%' : '95%' }}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </form>
   );

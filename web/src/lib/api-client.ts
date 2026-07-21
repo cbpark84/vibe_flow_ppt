@@ -1,6 +1,7 @@
 import type {
   GenerateRequest,
-  GenerateResponse,
+  JobQueuedResponse,
+  JobResultResponse,
   ProvidersResponse,
   ThemesResponse,
 } from '@/types/api';
@@ -20,11 +21,17 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const apiClient = {
+  /** PPT 생성 요청 — 즉시 job_id 반환 (< 100ms) */
   generate: (body: GenerateRequest) =>
-    apiFetch<GenerateResponse>('/api/v1/generate', {
+    apiFetch<JobQueuedResponse>('/api/v1/generate', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  /** 잡 상태 폴링 */
+  getJobStatus: (jobId: string) =>
+    apiFetch<JobResultResponse>(`/api/v1/jobs/${jobId}`),
+
   themes: () => apiFetch<ThemesResponse>('/api/v1/themes'),
   providers: () => apiFetch<ProvidersResponse>('/api/v1/providers'),
 };

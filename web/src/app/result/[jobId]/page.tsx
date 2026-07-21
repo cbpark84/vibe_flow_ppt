@@ -8,58 +8,105 @@ import { DownloadCard } from '@/components/result/download-card';
 import { MetaInfo } from '@/components/result/meta-info';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
-import { getResultData } from '@/lib/history';
+import { ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { addHistory, saveResultData, getResultData } from '@/lib/history';
+import { useJobStatus } from '@/hooks/use-job';
 import type { GenerateResponse } from '@/types/api';
 
 interface PageProps {
   params: Promise<{ jobId: string }>;
 }
 
+const POLL_LABELS: Record<string, string> = {
+  queued:      '⏳ 작업 대기 중...',
+  in_progress: '🤖 LLM이 슬라이드를 생성하고 있습니다...',
+};
+
 export default function ResultPage({ params }: PageProps) {
   const { jobId } = use(params);
   const searchParams = useSearchParams();
-  const [result, setResult] = useState<GenerateResponse | null>(null);
-  const [topic, setTopic] = useState<string>('');
-  const [notFound, setNotFound] = useState(false);
+  const topic = searchParams.get('topic') ?? '';
 
+  // 1순위: localStorage 캐시 (히스토리 재접근 시 즉시 표시)
+  const [cached] = useState<GenerateResponse | null>(() => getResultData(jobId));
+  const [savedResult, setSavedResult] = useState<GenerateResponse | null>(cached);
+
+  // 캐시 없을 때만 폴링
+  const { data: jobData, isError } = useJobStatus(savedResult ? null : jobId);
+
+  // 폴링 완료 처리
   useEffect(() => {
-    // 1순위: URL의 data 파라미터 (generate 직후 리다이렉트)
-    const rawData = searchParams.get('data');
-    const urlTopic = searchParams.get('topic') ?? '';
+    if (savedResult || !jobData) return;
 
-    if (rawData) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(rawData)) as GenerateResponse;
-        setResult(parsed);
-        setTopic(urlTopic);
-        return;
-      } catch {
-        // fall through
-      }
+    if (jobData.status === 'completed' && jobData.result) {
+      const result = jobData.result;
+      setSavedResult(result);
+
+      // localStorage에 캐시 저장
+      saveResultData(jobId, result);
+
+      // 히스토리 추가
+      addHistory({
+        job_id: jobId,
+        topic: topic || result.job_id.slice(0, 8),
+        style:  'modern',  // 생성 시 스타일 정보는 폴링 결과에 없음
+        created_at: new Date().toISOString(),
+        slide_count:   result.meta.slide_count,
+        provider_used: result.meta.provider_used,
+      });
     }
+  }, [jobData, savedResult, jobId, topic]);
 
-    // 2순위: localStorage 캐시 (히스토리에서 접근)
-    const cached = getResultData(jobId);
-    if (cached) {
-      setResult(cached);
-      // 히스토리에서 topic 찾기
-      try {
-        const history = JSON.parse(localStorage.getItem('vibe_flow_ppt_history') ?? '[]') as Array<{ job_id: string; topic: string }>;
-        const entry = history.find((h) => h.job_id === jobId);
-        setTopic(entry?.topic ?? '');
-      } catch {
-        setTopic('');
-      }
-      return;
-    }
+  /* ── 폴링 중 (queued / in_progress) ── */
+  const isPolling = !savedResult && !isError && (
+    !jobData || jobData.status === 'queued' || jobData.status === 'in_progress'
+  );
 
-    // 3순위: 데이터 없음
-    setNotFound(true);
-  }, [jobId, searchParams]);
+  if (isPolling) {
+    const label = jobData ? POLL_LABELS[jobData.status] ?? '처리 중...' : '잡 상태 확인 중...';
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center text-center gap-6">
+          <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+          <p className="text-sm font-medium">{label}</p>
+          <p className="text-xs text-muted-foreground">
+            잠시 기다려 주세요. 완료되면 자동으로 표시됩니다.
+          </p>
+          <div className="w-48 h-1 bg-border rounded-full overflow-hidden">
+            <div className="h-full bg-foreground rounded-full animate-pulse w-2/3" />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
-  /* ── 로딩 중 ── */
-  if (!result && !notFound) {
+  /* ── 실패 / 에러 ── */
+  const isFailed = (!savedResult && isError) || jobData?.status === 'failed';
+  if (isFailed) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="max-w-2xl mx-auto px-6 py-12">
+          <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+            <p className="text-sm font-medium">생성에 실패했습니다</p>
+            <p className="text-xs text-muted-foreground">
+              {jobData?.error ?? '알 수 없는 오류가 발생했습니다.'}
+            </p>
+            <Link href="/" className="mt-2">
+              <Button size="sm" variant="outline" className="text-xs h-8">
+                다시 시도하기
+              </Button>
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  /* ── 데이터 없음 ── */
+  if (!savedResult) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -67,29 +114,6 @@ export default function ResultPage({ params }: PageProps) {
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-24 w-full" />
-        </main>
-      </div>
-    );
-  }
-
-  /* ── 데이터 없음 ── */
-  if (notFound) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="max-w-2xl mx-auto px-6 py-12">
-          <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-            <AlertCircle className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm font-medium">결과를 찾을 수 없습니다</p>
-            <p className="text-xs text-muted-foreground">
-              Job ID <span className="font-mono">{jobId.slice(0, 8)}...</span> 의 데이터가 없습니다.
-            </p>
-            <Link href="/" className="mt-2">
-              <Button size="sm" variant="outline" className="text-xs h-8">
-                새로 만들기
-              </Button>
-            </Link>
-          </div>
         </main>
       </div>
     );
@@ -128,9 +152,9 @@ export default function ResultPage({ params }: PageProps) {
             파일 다운로드
           </p>
           <DownloadCard
-            jobId={result!.job_id}
-            pptxUrl={result!.files.pptx}
-            htmlUrl={result!.files.html}
+            jobId={savedResult.job_id}
+            pptxUrl={savedResult.files.pptx}
+            htmlUrl={savedResult.files.html}
           />
         </div>
 
@@ -138,7 +162,7 @@ export default function ResultPage({ params }: PageProps) {
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-4">
             생성 정보
           </p>
-          <MetaInfo meta={result!.meta} jobId={result!.job_id} />
+          <MetaInfo meta={savedResult.meta} jobId={savedResult.job_id} />
         </div>
       </main>
     </div>

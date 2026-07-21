@@ -71,3 +71,19 @@ export interface HistoryEntry {
   slide_count: number;
   provider_used: string;
 }
+
+export interface JobQueuedResponse {
+  job_id: string;
+  status: 'queued';
+  message: string;
+}
+
+export interface JobResultResponse {
+  job_id: string;
+  status: 'queued' | 'in_progress' | 'completed' | 'failed';
+  result: GenerateResponse | null;
+  error: string | null;
+  enqueue_time: number | null;
+  start_time: number | null;
+  finish_time: number | null;
+}
