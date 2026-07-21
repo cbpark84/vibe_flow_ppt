@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 from pptx import Presentation
@@ -57,8 +58,10 @@ class PPTXRenderer:
         topic: str,
         provider_used: str,
         generation_time_ms: int = 0,
+        job_id: Optional[str] = None,
     ) -> tuple[str, Path]:
-        job_id = str(uuid4())
+        if job_id is None:
+            job_id = str(uuid4())
         job_dir = self.output_dir / job_id
         job_dir.mkdir(parents=True, exist_ok=True)
 

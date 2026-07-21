@@ -1,6 +1,6 @@
+import asyncio
 import logging
 import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -16,13 +16,7 @@ SLIDE_SEPARATOR = "\n\n---\n\n"
 
 
 def _get_npx() -> str:
-    """
-    플랫폼별 npx 실행 파일 경로 반환.
-
-    Windows: Node.js 설치 시 npx.cmd 로 등록됨
-    Mac/Linux: npx 로 등록됨
-    shutil.which 로 PATH 전체를 탐색해 정확한 경로를 반환.
-    """
+    """플랫폼별 npx 실행 파일 경로 반환."""
     if sys.platform == "win32":
         cmd = shutil.which("npx.cmd") or shutil.which("npx")
         if cmd:
@@ -44,7 +38,7 @@ class HTMLRenderer:
     def __init__(self, output_dir: Path):
         self.output_dir = output_dir
 
-    def render(
+    async def render(
         self,
         slides_json: dict,
         theme: Theme,
@@ -53,9 +47,7 @@ class HTMLRenderer:
     ) -> Union[str, Path]:
         """
         슬라이드 JSON + Theme → HTML 파일 또는 HTML 문자열
-
-        Args:
-            as_string: True면 파일 저장 없이 HTML 문자열 반환 (preview용)
+        asyncio.create_subprocess_exec 사용으로 이벤트 루프 비블로킹
         """
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -74,18 +66,22 @@ class HTMLRenderer:
 
         try:
             npx = _get_npx()
-            subprocess.run(
-                [npx, "--yes", "@marp-team/marp-cli",
-                 str(tmp_md), "--html", "--output", str(out_html)],
-                check=True,
-                capture_output=True,
-                timeout=120,
+            proc = await asyncio.create_subprocess_exec(
+                npx, "--yes", "@marp-team/marp-cli",
+                str(tmp_md), "--html", "--output", str(out_html),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
+            _, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"Marp CLI 실패: {stderr.decode(errors='ignore')[:300]}"
+                )
         except FileNotFoundError as e:
             raise RuntimeError(str(e)) from e
-        except subprocess.CalledProcessError as e:
-            stderr = e.stderr.decode(errors="ignore")
-            raise RuntimeError(f"Marp CLI 실패: {stderr[:300]}") from e
+        except asyncio.TimeoutError:
+            proc.kill()
+            raise RuntimeError("Marp CLI 타임아웃 (120초 초과)")
         finally:
             tmp_md.unlink(missing_ok=True)
 

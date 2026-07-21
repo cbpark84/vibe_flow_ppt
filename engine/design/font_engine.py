@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -30,8 +31,6 @@ FONT_PAIRINGS: dict[str, dict[str, dict]] = {
     },
 }
 
-# Google Fonts API 다운로드 URL 패턴
-GOOGLE_FONTS_CSS_URL = "https://fonts.googleapis.com/css2?family={family}&display=swap"
 GOOGLE_FONTS_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -39,31 +38,42 @@ GOOGLE_FONTS_HEADERS = {
     )
 }
 
+# ── CSS 응답 인메모리 캐시 (프로세스 수명 동안 유지) ──────────
+_css_cache: dict[str, str] = {}
+
 
 async def _download_font(font_name: str) -> Optional[Path]:
     """Google Fonts에서 TTF 다운로드. 실패하면 None 반환."""
     FONT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     safe_name = font_name.replace(" ", "_")
     cache_path = FONT_CACHE_DIR / f"{safe_name}.ttf"
+
+    # TTF 파일 이미 있으면 즉시 반환
     if cache_path.exists():
         return cache_path
+
     try:
         family_param = font_name.replace(" ", "+")
+        css_url = f"https://fonts.googleapis.com/css2?family={family_param}&display=swap"
+
         async with httpx.AsyncClient(timeout=10.0, headers=GOOGLE_FONTS_HEADERS) as client:
-            # CSS에서 woff2 URL 추출
-            css_resp = await client.get(
-                f"https://fonts.googleapis.com/css2?family={family_param}&display=swap"
-            )
-            if css_resp.status_code != 200:
-                return None
-            # 첫 번째 url(...) 추출
-            import re
-            urls = re.findall(r"url\((https://fonts\.gstatic\.com/[^)]+\.ttf)\)", css_resp.text)
+            # CSS 캐시 확인 후 필요할 때만 다운로드
+            if css_url in _css_cache:
+                css_text = _css_cache[css_url]
+            else:
+                css_resp = await client.get(css_url)
+                if css_resp.status_code != 200:
+                    return None
+                css_text = css_resp.text
+                _css_cache[css_url] = css_text  # 캐시에 저장
+
+            # TTF URL 추출
+            urls = re.findall(r"url\((https://fonts\.gstatic\.com/[^)]+\.ttf)\)", css_text)
             if not urls:
-                # woff2도 시도
-                urls = re.findall(r"url\((https://fonts\.gstatic\.com/[^)]+)\)", css_resp.text)
+                urls = re.findall(r"url\((https://fonts\.gstatic\.com/[^)]+)\)", css_text)
             if not urls:
                 return None
+
             font_resp = await client.get(urls[0])
             if font_resp.status_code == 200:
                 cache_path.write_bytes(font_resp.content)
@@ -76,8 +86,8 @@ async def _download_font(font_name: str) -> Optional[Path]:
 
 async def get_pairing(lang: str, style: str) -> FontPairing:
     """lang + style → FontPairing (TTF 캐시 경로 포함)"""
-    lang_key = lang if lang in FONT_PAIRINGS else "en"
-    style_key = style if style in FONT_PAIRINGS.get(lang_key, {}) else "modern"
+    lang_key  = lang  if lang  in FONT_PAIRINGS                    else "en"
+    style_key = style if style in FONT_PAIRINGS.get(lang_key, {})  else "modern"
     pair = FONT_PAIRINGS[lang_key][style_key]
 
     title_font = pair["title"]

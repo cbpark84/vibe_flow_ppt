@@ -7,6 +7,11 @@ from litellm import acompletion
 
 from .base import BaseLLMAdapter, LLMAdapterError
 
+# ── LiteLLM 인메모리 응답 캐시 (동일 요청 반복 시 LLM 호출 생략) ──
+litellm.cache = litellm.Cache()
+litellm.set_verbose = False
+
+# ── 시스템 프롬프트 + 스키마 (Anthropic prompt caching 대상) ──────
 SYSTEM_PROMPT = """당신은 프레젠테이션 전문가입니다.
 사용자의 요청을 받아 슬라이드 구조를 JSON 형식으로 반환합니다.
 
@@ -16,9 +21,10 @@ SYSTEM_PROMPT = """당신은 프레젠테이션 전문가입니다.
 3. 설명 텍스트, 주석 절대 금지.
 4. 제공된 스키마를 정확히 따르세요.
 5. 모든 문자열 값은 따옴표로 감싸세요.
-6. speaker_notes는 반드시 포함하고, 내용 없으면 빈 문자열("")로."""
+6. speaker_notes는 반드시 포함하고, 내용 없으면 빈 문자열("")로.
 
-SLIDE_SCHEMA_EXAMPLE = """{
+출력 JSON 스키마:
+{
   "title": "프레젠테이션 제목",
   "subtitle": "부제목 (없으면 빈 문자열)",
   "lang": "ko",
@@ -74,21 +80,32 @@ def _extract_json(raw: str) -> dict:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
+        # 스택 기반 탐색으로 첫 번째 완전한 JSON 객체 추출
+        start = raw.find('{')
+        if start == -1:
+            raise
+        depth = 0
+        for i, ch in enumerate(raw[start:], start):
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(raw[start:i + 1])
+                    except json.JSONDecodeError:
+                        pass
         raise
+
+
+def _is_anthropic(model: str) -> bool:
+    return "claude" in model.lower() or "anthropic" in model.lower()
 
 
 class LiteLLMAdapter(BaseLLMAdapter):
     def __init__(self, model: str, **kwargs):
         self.model = model
         self.kwargs = kwargs
-        # litellm verbose 로그 최소화
-        litellm.set_verbose = False
 
     async def generate_slides(
         self,
@@ -111,9 +128,6 @@ class LiteLLMAdapter(BaseLLMAdapter):
 슬라이드 수: {count_instruction}
 추가 지시: {additional_instructions or '없음'}
 
-아래 스키마 형식으로 JSON을 출력하세요:
-{SLIDE_SCHEMA_EXAMPLE}
-
 규칙:
 - 첫 슬라이드 반드시 type: "title"
 - 마지막 슬라이드 반드시 type: "closing"
@@ -122,19 +136,34 @@ class LiteLLMAdapter(BaseLLMAdapter):
 - 모든 슬라이드에 speaker_notes 포함 (없으면 빈 문자열)
 - index는 1부터 시작하며 연속적이고 중복 없음"""
 
-        is_ollama = self.model.startswith("ollama/")
+        is_ollama    = self.model.startswith("ollama/")
+        is_anthropic = _is_anthropic(self.model)
 
-        call_kwargs = {
-            "model": self.model,
+        # ── Anthropic: system prompt를 캐시 가능한 형식으로 구성 ──
+        # cache_control은 Anthropic에서만 유효하며 LiteLLM이 자동 처리
+        if is_anthropic:
+            system_content = [
+                {
+                    "type": "text",
+                    "text": SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ]
+        else:
+            system_content = SYSTEM_PROMPT
+
+        call_kwargs: dict = {
+            "model":    self.model,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
+                {"role": "system", "content": system_content},
+                {"role": "user",   "content": user_prompt},
             ],
-            "temperature": 0.7,
+            "temperature": 0.4,   # 0.7 → 0.4: JSON 일관성 향상
+            "caching": True,      # LiteLLM 응답 캐시 활성화
             **self.kwargs,
         }
 
-        # Ollama는 json_object 모드 미지원 → 프롬프트 기반 JSON 추출
+        # Ollama는 json_object 모드 미지원
         if not is_ollama:
             call_kwargs["response_format"] = {"type": "json_object"}
 
