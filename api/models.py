@@ -70,4 +70,5 @@ class PreviewResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
-    version: str = "0.2.0"
+    version: str = "0.3.0"
+    marp_worker: bool = False

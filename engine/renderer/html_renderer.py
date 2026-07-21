@@ -8,6 +8,7 @@ from typing import Union
 from uuid import uuid4
 
 from engine.design.types import Theme
+from engine.renderer.marp_client import MarpClient
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ SLIDE_SEPARATOR = "\n\n---\n\n"
 
 
 def _get_npx() -> str:
-    """플랫폼별 npx 실행 파일 경로 반환."""
+    """플랫폼별 npx 실행 파일 경로 반환 (subprocess fallback용)."""
     if sys.platform == "win32":
         cmd = shutil.which("npx.cmd") or shutil.which("npx")
         if cmd:
@@ -46,13 +47,44 @@ class HTMLRenderer:
         as_string: bool = False,
     ) -> Union[str, Path]:
         """
-        슬라이드 JSON + Theme → HTML 파일 또는 HTML 문자열
-        asyncio.create_subprocess_exec 사용으로 이벤트 루프 비블로킹
-        """
-        TEMP_DIR.mkdir(parents=True, exist_ok=True)
+        슬라이드 JSON + Theme → HTML
 
+        1순위: Marp 퍼시스턴트 워커 (빠름, Node.js 재사용)
+        2순위: asyncio subprocess fallback (워커 미가용 시)
+        """
         css = self._build_css(theme)
         md  = self._build_markdown(slides_json, css)
+
+        # ── 1순위: Marp 워커 ──────────────────────────────────────
+        html = await MarpClient.render(md)
+
+        if html is not None:
+            logger.info("Marp worker 변환 성공 (job_id=%s)", job_id)
+            return self._save_or_return(html, job_id, as_string)
+
+        # ── 2순위: subprocess fallback ────────────────────────────
+        logger.info("subprocess fallback 사용 (job_id=%s)", job_id)
+        return await self._render_subprocess(md, job_id, as_string)
+
+    # ── 저장 / 반환 헬퍼 ─────────────────────────────────────────
+    def _save_or_return(
+        self, html: str, job_id: str, as_string: bool
+    ) -> Union[str, Path]:
+        if as_string:
+            return html
+
+        job_dir = self.output_dir / job_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+        out_html = job_dir / "presentation.html"
+        out_html.write_text(html, encoding="utf-8")
+        logger.info("HTML 저장 완료: %s", out_html)
+        return out_html
+
+    # ── subprocess fallback ───────────────────────────────────────
+    async def _render_subprocess(
+        self, md: str, job_id: str, as_string: bool
+    ) -> Union[str, Path]:
+        TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
         tmp_md = TEMP_DIR / f"{uuid4()}.md"
         tmp_md.write_text(md, encoding="utf-8")
@@ -90,9 +122,10 @@ class HTMLRenderer:
             out_html.unlink(missing_ok=True)
             return html_str
 
-        logger.info("HTML 생성 완료: %s", out_html)
+        logger.info("HTML 생성 완료 (subprocess): %s", out_html)
         return out_html
 
+    # ── CSS / Markdown 빌더 ───────────────────────────────────────
     def _build_css(self, theme: Theme) -> str:
         c = theme.colors
         f = theme.fonts

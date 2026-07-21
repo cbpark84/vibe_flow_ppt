@@ -1,12 +1,13 @@
 {
   "name": "vibe_flow_ppt",
   "version": "0.2.0",
-  "description": "Marp CLI for HTML presentation rendering",
+  "description": "Marp CLI persistent worker for HTML presentation rendering",
   "private": true,
-  "devDependencies": {
+  "dependencies": {
     "@marp-team/marp-cli": "^4.1.1"
   },
   "scripts": {
-    "marp": "marp"
+    "marp": "marp",
+    "worker": "node scripts/marp_worker.js"
   }
 }
