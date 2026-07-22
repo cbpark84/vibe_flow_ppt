@@ -68,13 +68,14 @@ scripts\start-windows.bat
 | Homebrew | [brew.sh](https://brew.sh) |
 | Redis | `brew install redis` |
 
-### Windows 추가
+### Windows 추가 (Redis — 아래 중 하나)
 
-| 항목 | 설치 방법 |
-|------|----------|
-| Docker Desktop | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop) |
-
-> Windows는 Redis 공식 네이티브 빌드가 없습니다. Docker Desktop으로 Redis를 실행합니다.
+| 옵션 | 설치 방법 | 비고 |
+|------|----------|------|
+| Memurai (추천) | [memurai.com/get-memurai](https://www.memurai.com/get-memurai) | Docker 불필요, 기업 환경 적합 |
+| Redis MSI | [github.com/tporadowski/redis/releases](https://github.com/tporadowski/redis/releases) | 비공식 포트, Redis 5.0 |
+| Docker Desktop | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop) | Docker 허용 환경 |
+| Upstash | [upstash.com](https://upstash.com) | 클라우드, 로컬 설치 없음 |
 
 ---
 
@@ -157,10 +158,54 @@ git clone https://github.com/cbpark84/vibe_flow_ppt.git
 cd vibe_flow_ppt
 ```
 
-### 2단계: Docker Desktop 설치 (Redis용)
+### 2단계: Redis 설치 (옵션 중 하나 선택)
 
-1. [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop) 다운로드
-2. 설치 후 Docker Desktop 실행 → 시스템 트레이 고래 아이콘 확인
+> Windows는 Redis 공식 네이티브 빌드가 없습니다. 아래 4가지 중 환경에 맞는 방법을 선택하세요.
+
+#### ✅ 옵션 A: Memurai (추천 — Docker 불필요)
+
+기업 보안 환경에서 Docker가 차단된 경우 가장 적합합니다.  
+Redis 7.4 API 완전 호환, Windows 서비스로 자동 등록됩니다.
+
+1. [memurai.com/get-memurai](https://www.memurai.com/get-memurai) 에서 **Developer Edition (무료)** MSI 다운로드
+2. MSI 설치 파일 실행 (관리자 권한 필요)
+3. 설치 완료 후 서비스 자동 시작 (포트 6379)
+
+> **Developer Edition 제한**: 10일마다 자동 재시작 (개발 환경 전용)  
+> 제한 없는 사용: Memurai Enterprise 유료 라이선스 구매
+
+또는 Chocolatey를 사용하는 경우:
+```cmd
+choco install memurai-developer
+```
+
+#### 옵션 B: Redis Windows 포트 (MSI 설치)
+
+비공식 포트이나 MSI 설치로 간단합니다. Redis 5.0.14 기반.
+
+1. [github.com/tporadowski/redis/releases](https://github.com/tporadowski/redis/releases) 에서 `Redis-x64-5.0.14.1.msi` 다운로드
+2. MSI 설치 파일 실행
+3. 설치 시 "Add to PATH" 및 "Install as Service" 체크
+
+#### 옵션 C: Docker Desktop
+
+```cmd
+REM Docker Desktop 설치 후 Docker 실행 확인 필요
+```
+[docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop) 설치 후 Docker Desktop 실행
+
+#### 옵션 D: Upstash 클라우드 Redis (로컬 설치 불필요)
+
+인터넷 연결만 있으면 됩니다. 무료 256MB.
+
+1. [upstash.com](https://upstash.com) 회원가입 → Redis 데이터베이스 생성
+2. 생성된 연결 정보로 `.env` 수정:
+
+```bash
+REDIS_URL=rediss://default:YOUR_TOKEN@YOUR_ENDPOINT:PORT
+```
+
+> TLS 필수: `redis://` 가 아닌 `rediss://` (s 추가)
 
 ### 3단계: Python 환경 구성
 

@@ -24,16 +24,48 @@ if (-not (Test-Path ".env")) {
     exit 1
 }
 
-Write-Step 1 "Redis 시작 (Docker)..."
-$running = docker ps --filter "name=vibe_redis" --format "{{.Names}}" 2>$null
-if ($running -eq "vibe_redis") {
-    Write-OK "Redis 이미 실행 중"
-} else {
-    try { docker start vibe_redis 2>$null } catch {}
-    if ($LASTEXITCODE -ne 0) {
-        docker run -d -p 6379:6379 --name vibe_redis redis:7-alpine
+Write-Step 1 "Redis 시작..."
+$redisDone = $false
+
+# Memurai 서비스 확인
+if (Get-Service -Name "memurai" -ErrorAction SilentlyContinue) {
+    Start-Service -Name "memurai" -ErrorAction SilentlyContinue
+    Write-OK "Memurai Redis 시작됨"
+    $redisDone = $true
+}
+# tporadowski Redis 서비스 확인
+elseif (Get-Service -Name "redis" -ErrorAction SilentlyContinue) {
+    Start-Service -Name "redis" -ErrorAction SilentlyContinue
+    Write-OK "Redis 서비스 시작됨"
+    $redisDone = $true
+}
+# Docker 시도
+else {
+    $running = docker ps --filter "name=vibe_redis" --format "{{.Names}}" 2>$null
+    if ($running -eq "vibe_redis") {
+        Write-OK "Docker Redis 이미 실행 중"
+        $redisDone = $true
+    } else {
+        $started = $false
+        try { docker start vibe_redis 2>$null; if ($LASTEXITCODE -eq 0) { $started = $true } } catch {}
+        if (-not $started) {
+            try { docker run -d -p 6379:6379 --name vibe_redis redis:7-alpine 2>$null; if ($LASTEXITCODE -eq 0) { $started = $true } } catch {}
+        }
+        if ($started) {
+            Write-OK "Docker Redis 시작됨"
+            $redisDone = $true
+        }
     }
-    Write-OK "Redis 시작됨"
+}
+
+if (-not $redisDone) {
+    Write-Host "[오류] Redis를 시작할 수 없습니다." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  Redis 설치 옵션 (하나만 선택):" -ForegroundColor Yellow
+    Write-Host "  A. Memurai   https://www.memurai.com/get-memurai" -ForegroundColor Cyan
+    Write-Host "  B. Redis MSI https://github.com/tporadowski/redis/releases" -ForegroundColor Cyan
+    Write-Host "  C. Docker    https://www.docker.com/products/docker-desktop" -ForegroundColor Cyan
+    exit 1
 }
 
 Write-Step 2 "ARQ 워커 시작..."

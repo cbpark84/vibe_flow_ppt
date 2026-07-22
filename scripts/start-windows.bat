@@ -23,18 +23,43 @@ if not exist "venv\Scripts\activate.bat" (
   echo [OK] 가상환경 확인됨
 )
 
-echo [2/5] Redis 시작 (Docker)...
+echo [2/5] Redis 시작...
+
+REM 우선순위: Memurai -> tporadowski Redis 서비스 -> Docker
+sc query memurai >nul 2>&1
+if %errorlevel% equ 0 (
+  net start memurai >nul 2>&1
+  echo [OK] Memurai Redis 시작됨
+  goto redis_done
+)
+
+sc query redis >nul 2>&1
+if %errorlevel% equ 0 (
+  net start redis >nul 2>&1
+  echo [OK] Redis 서비스 시작됨
+  goto redis_done
+)
+
+echo    Docker로 Redis 시도 중...
 docker start vibe_redis 2>nul
 if %errorlevel% neq 0 (
-  docker run -d -p 6379:6379 --name vibe_redis redis:7-alpine
+  docker run -d -p 6379:6379 --name vibe_redis redis:7-alpine 2>nul
 )
-if %errorlevel% neq 0 (
-  echo [오류] Docker가 실행 중인지 확인하세요.
-  echo        https://www.docker.com/products/docker-desktop
-  pause
-  exit /b 1
+if %errorlevel% equ 0 (
+  echo [OK] Docker Redis 시작됨
+  goto redis_done
 )
-echo [OK] Redis 시작됨
+
+echo [오류] Redis를 시작할 수 없습니다.
+echo.
+echo  Redis 설치 옵션 (하나만 선택):
+echo  A. Memurai   https://www.memurai.com/get-memurai
+echo  B. Redis MSI https://github.com/tporadowski/redis/releases
+echo  C. Docker    https://www.docker.com/products/docker-desktop
+pause
+exit /b 1
+
+:redis_done
 
 echo [3/5] ARQ 워커 시작...
 start "vibe_flow_ppt - ARQ Worker" cmd /k "cd /d %CD% && venv\Scripts\activate.bat && arq engine.worker.settings.WorkerSettings"
