@@ -17,10 +17,23 @@ if not exist ".env" (
 if not exist "venv\Scripts\activate.bat" (
   echo [1/5] Creating virtual environment...
   python -m venv venv
-  call venv\Scripts\activate.bat
-  pip install -r requirements.txt -q
+)
+call venv\Scripts\activate.bat
+
+python -c "import arq" >nul 2>&1
+if %errorlevel% neq 0 (
+  echo [1/5] Installing Python packages...
+  echo        If this fails, configure pip to use your Nexus registry:
+  echo        pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/
+  echo        pip config set global.trusted-host nexus.sdsdev.co.kr
+  pip install -r requirements.txt
+  if %errorlevel% neq 0 (
+    echo [ERROR] pip install failed. Check your network/Nexus settings above.
+    pause
+    exit /b 1
+  )
 ) else (
-  echo [OK] Virtual environment found
+  echo [OK] Python packages installed
 )
 
 echo [2/5] Starting Redis...

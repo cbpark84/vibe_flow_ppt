@@ -11,7 +11,7 @@ Set-Location $Root
 # PowerShell 7(pwsh) 우선, 없으면 기본 PowerShell 5(powershell) 사용
 $PS = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
 
-function Write-Step($n, $msg) { Write-Host "[$n/4] $msg" -ForegroundColor Yellow }
+function Write-Step($n, $msg) { Write-Host "[$n] $msg" -ForegroundColor Yellow }
 function Write-OK($msg)       { Write-Host "  v $msg" -ForegroundColor Green }
 
 Write-Host "===========================================" -ForegroundColor Cyan
@@ -24,7 +24,28 @@ if (-not (Test-Path ".env")) {
     exit 1
 }
 
-Write-Step 1 "Redis 시작..."
+if (-not (Test-Path "venv\Scripts\Activate.ps1")) {
+    Write-Step "1/5" "Creating virtual environment..."
+    python -m venv venv
+}
+& "venv\Scripts\Activate.ps1"
+
+$arqCheck = python -c "import arq" 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Step "1/5" "Installing Python packages..."
+    Write-Host "  If this fails, configure pip for Nexus:" -ForegroundColor Gray
+    Write-Host "  pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/" -ForegroundColor Gray
+    Write-Host "  pip config set global.trusted-host nexus.sdsdev.co.kr" -ForegroundColor Gray
+    pip install -r requirements.txt
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] pip install failed. Check network/Nexus settings." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-OK "Python packages installed"
+}
+
+Write-Step "2/5" "Redis 시작..."
 $redisDone = $false
 
 # Memurai 서비스 확인
@@ -68,14 +89,14 @@ if (-not $redisDone) {
     exit 1
 }
 
-Write-Step 2 "ARQ 워커 시작..."
+Write-Step "3/5" "ARQ 워커 시작..."
 Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
     "Set-Location '$Root'; venv\Scripts\Activate.ps1; Write-Host 'ARQ Worker 시작' -ForegroundColor Cyan; python -m arq engine.worker.settings.WorkerSettings"
 ) -WindowStyle Normal
 Write-OK "ARQ 워커 창 열림"
 
-Write-Step 3 "FastAPI 서버 시작..."
+Write-Step "4/5" "FastAPI 서버 시작..."
 Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
     "Set-Location '$Root'; venv\Scripts\Activate.ps1; Write-Host 'FastAPI 시작' -ForegroundColor Cyan; uvicorn api.main:app --host 0.0.0.0 --port 8000"
@@ -85,7 +106,7 @@ Write-OK "FastAPI 창 열림"
 Write-Host "  서버 준비 대기 (5초)..." -ForegroundColor Gray
 Start-Sleep -Seconds 5
 
-Write-Step 4 "Next.js 웹앱 시작..."
+Write-Step "5/5" "Next.js 웹앱 시작..."
 Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
     "Set-Location '$Root\web'; Write-Host 'Next.js 시작' -ForegroundColor Cyan; npm run dev"
