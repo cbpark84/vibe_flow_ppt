@@ -71,7 +71,7 @@ echo 서버 준비 대기 중 (5초)...
 timeout /t 5 /nobreak > nul
 
 echo [5/5] Next.js 웹앱 시작...
-start "vibe_flow_ppt - Next.js" cmd /k "cd /d %CD%\web && pnpm dev"
+start "vibe_flow_ppt - Next.js" cmd /k "cd /d %CD%\web && npm run dev"
 
 timeout /t 5 /nobreak > nul
 start http://localhost:3000

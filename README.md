@@ -228,19 +228,16 @@ pip install -r requirements.txt
 > Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 > ```
 
-### 4단계: Node.js / pnpm 설치
+### 4단계: Node.js / npm 설치
 
 ```powershell
 # Node.js 설치 (PowerShell 관리자 권한)
 winget install OpenJS.NodeJS.LTS
 
-# 새 터미널 열고 pnpm 설치
-npm install -g pnpm
-
-# 패키지 설치 (루트: Marp CLI / 웹앱: Next.js)
+# 새 터미널에서 패키지 설치 (루트: Marp CLI / 웹앱: Next.js)
 npm install
 cd web
-pnpm install
+npm install
 cd ..
 ```
 
@@ -366,7 +363,7 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 **창 4 — Next.js**
 ```cmd
 cd web
-pnpm dev
+npm run dev
 ```
 
 #### 접속 주소

@@ -88,7 +88,7 @@ Start-Sleep -Seconds 5
 Write-Step 4 "Next.js 웹앱 시작..."
 Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
-    "Set-Location '$Root\web'; Write-Host 'Next.js 시작' -ForegroundColor Cyan; pnpm dev"
+    "Set-Location '$Root\web'; Write-Host 'Next.js 시작' -ForegroundColor Cyan; npm run dev"
 ) -WindowStyle Normal
 Write-OK "Next.js 창 열림"
 
