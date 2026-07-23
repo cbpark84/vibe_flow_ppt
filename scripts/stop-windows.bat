@@ -1,19 +1,25 @@
 @echo off
-echo === vibe_flow_ppt 종료 ===
+echo === vibe_flow_ppt Stop ===
+
 taskkill /f /fi "WINDOWTITLE eq vibe_flow_ppt*" 2>nul
 
-REM Redis 종료 (설치된 방식에 맞게 자동 감지)
 sc query memurai >nul 2>&1
 if %errorlevel% equ 0 (
   net stop memurai >nul 2>&1
-) else (
-  sc query redis >nul 2>&1
-  if %errorlevel% equ 0 (
-    net stop redis >nul 2>&1
-  ) else (
-    docker stop vibe_redis >nul 2>&1
-  )
+  echo [OK] Memurai stopped
+  goto redis_stopped
 )
 
-echo 종료 완료
+sc query redis >nul 2>&1
+if %errorlevel% equ 0 (
+  net stop redis >nul 2>&1
+  echo [OK] Redis service stopped
+  goto redis_stopped
+)
+
+docker stop vibe_redis >nul 2>&1
+echo [OK] Docker Redis stopped
+
+:redis_stopped
+echo Done.
 pause
