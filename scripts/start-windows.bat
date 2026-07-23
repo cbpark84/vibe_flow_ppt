@@ -61,7 +61,7 @@ exit /b 1
 :redis_done
 
 echo [3/5] Starting ARQ Worker...
-start "vibe_flow_ppt - ARQ Worker" cmd /k "cd /d %CD% && venv\Scripts\activate.bat && arq engine.worker.settings.WorkerSettings"
+start "vibe_flow_ppt - ARQ Worker" cmd /k "cd /d %CD% && venv\Scripts\activate.bat && python -m arq engine.worker.settings.WorkerSettings"
 
 echo [4/5] Starting FastAPI server...
 start "vibe_flow_ppt - FastAPI" cmd /k "cd /d %CD% && venv\Scripts\activate.bat && uvicorn api.main:app --host 0.0.0.0 --port 8000"

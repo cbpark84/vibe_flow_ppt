@@ -71,7 +71,7 @@ if (-not $redisDone) {
 Write-Step 2 "ARQ 워커 시작..."
 Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
-    "Set-Location '$Root'; venv\Scripts\Activate.ps1; Write-Host 'ARQ Worker 시작' -ForegroundColor Cyan; arq engine.worker.settings.WorkerSettings"
+    "Set-Location '$Root'; venv\Scripts\Activate.ps1; Write-Host 'ARQ Worker 시작' -ForegroundColor Cyan; python -m arq engine.worker.settings.WorkerSettings"
 ) -WindowStyle Normal
 Write-OK "ARQ 워커 창 열림"
 
