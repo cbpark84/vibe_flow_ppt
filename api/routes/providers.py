@@ -40,3 +40,17 @@ async def list_providers():
         result.append(ProviderInfo(id=p["id"], name=p["name"], available=available, note=note))
 
     return ProvidersResponse(providers=result)
+
+
+@router.get("/ollama/models")
+async def get_ollama_models():
+    """로컬 Ollama에서 설치된 모델 목록 반환"""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
+            resp.raise_for_status()
+            data = resp.json()
+            models = [m["name"] for m in data.get("models", [])]
+            return {"models": models, "available": True}
+    except Exception:
+        return {"models": [], "available": False}

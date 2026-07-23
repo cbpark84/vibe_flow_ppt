@@ -87,3 +87,8 @@ export interface JobResultResponse {
   start_time: number | null;
   finish_time: number | null;
 }
+
+export interface OllamaModelsResponse {
+  models: string[];
+  available: boolean;
+}

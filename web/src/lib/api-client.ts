@@ -4,6 +4,7 @@ import type {
   JobResultResponse,
   ProvidersResponse,
   ThemesResponse,
+  OllamaModelsResponse,
 } from '@/types/api';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -34,6 +35,15 @@ export const apiClient = {
 
   themes: () => apiFetch<ThemesResponse>('/api/v1/themes'),
   providers: () => apiFetch<ProvidersResponse>('/api/v1/providers'),
+  ollamaModels: async (): Promise<OllamaModelsResponse> => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/ollama/models`);
+      if (!res.ok) return { models: [], available: false };
+      return res.json();
+    } catch {
+      return { models: [], available: false };
+    }
+  },
 };
 
 export const API_BASE = BASE_URL;
