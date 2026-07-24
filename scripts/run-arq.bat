@@ -1,7 +1,6 @@
 @echo off
 set "ROOT=%~1"
 cd /d "%ROOT%"
-set "PYTHONPATH=%ROOT%"
 set "PYTHON=%ROOT%\venv\Scripts\python.exe"
 
 if not exist "%PYTHON%" (
@@ -11,8 +10,7 @@ if not exist "%PYTHON%" (
   exit /b 1
 )
 
-echo [ARQ] ROOT     = %ROOT%
-echo [ARQ] PYTHON   = %PYTHON%
-echo [ARQ] PYTHONPATH = %PYTHONPATH%
-echo [ARQ] Starting ARQ Worker...
-"%PYTHON%" -m arq engine.worker.settings.WorkerSettings
+echo [ARQ] ROOT   = %ROOT%
+echo [ARQ] PYTHON = %PYTHON%
+echo [ARQ] Starting ARQ Worker via start_worker.py...
+"%PYTHON%" "%ROOT%\start_worker.py"
