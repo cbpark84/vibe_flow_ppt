@@ -1,4 +1,5 @@
 @echo off
-cd /d "%~1"
-echo [WEB] Starting Next.js...
+set "ROOT=%~1"
+cd /d "%ROOT%"
+echo [WEB] Starting Next.js in %ROOT%...
 npm run dev
