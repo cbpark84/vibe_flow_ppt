@@ -41,4 +41,10 @@ from arq import run_worker
 from engine.worker.settings import WorkerSettings
 
 if __name__ == '__main__':
-    run_worker(WorkerSettings)
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        run_worker(WorkerSettings)
+    finally:
+        loop.close()
