@@ -19,6 +19,11 @@ if project_root not in sys.path:
 print(f"[ARQ] project_root: {project_root}")
 print(f"[ARQ] sys.path[0]: {sys.path[0]}")
 
+# .env 파일 로드 (REDIS_URL 등 환경변수 적용)
+from dotenv import load_dotenv
+load_dotenv()
+print(f"[ARQ] REDIS_URL: {os.environ.get('REDIS_URL', 'redis://localhost:6379 (default)')}")
+
 # engine/ 하위 모든 패키지 디렉토리에 __init__.py 재귀적으로 보장
 engine_dir = os.path.join(project_root, "engine")
 print(f"\n[ARQ] 디렉토리 구조 및 __init__.py 확인 시작...")
