@@ -25,6 +25,8 @@ if %errorlevel% neq 0 (
   echo [1/5] Configuring pip for Nexus...
   pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/ >nul 2>&1
   pip config set global.trusted-host nexus.sdsdev.co.kr >nul 2>&1
+  echo        Tip: if packages are missing, ask IT for pypi-group URL
+  echo        e.g. http://nexus.sdsdev.co.kr:8081/repository/pypi-all/simple/
   echo [1/5] Installing Python packages...
   pip install -r requirements.txt --prefer-binary --find-links wheels --trusted-host nexus.sdsdev.co.kr
   if %errorlevel% neq 0 (

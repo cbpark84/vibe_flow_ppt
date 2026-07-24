@@ -35,6 +35,8 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "  Configuring pip for Nexus..." -ForegroundColor Gray
     pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/ | Out-Null
     pip config set global.trusted-host nexus.sdsdev.co.kr | Out-Null
+    Write-Host "  Tip: if packages are missing, ask IT for pypi-group URL" -ForegroundColor Gray
+    Write-Host "  e.g. http://nexus.sdsdev.co.kr:8081/repository/pypi-all/simple/" -ForegroundColor Gray
     Write-Step "1/5" "Installing Python packages..."
     pip install -r requirements.txt --prefer-binary --find-links wheels --trusted-host nexus.sdsdev.co.kr
     if ($LASTEXITCODE -ne 0) {
