@@ -5,6 +5,9 @@
 # PowerShell scripts
 *.ps1       text eol=crlf
 
+# Binary wheel files
+*.whl       binary
+
 # Shell scripts use LF
 *.sh        text eol=lf
 

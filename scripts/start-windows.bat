@@ -25,13 +25,10 @@ if %errorlevel% neq 0 (
   echo [1/5] Configuring pip for Nexus...
   pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/ >nul 2>&1
   pip config set global.trusted-host nexus.sdsdev.co.kr >nul 2>&1
-  echo [1/5] Installing Python packages ^(prefer-binary^)...
-  pip install -r requirements.txt --prefer-binary --trusted-host nexus.sdsdev.co.kr
+  echo [1/5] Installing Python packages...
+  pip install -r requirements.txt --prefer-binary --find-links wheels --trusted-host nexus.sdsdev.co.kr
   if %errorlevel% neq 0 (
     echo [ERROR] pip install failed.
-    echo         Option: download wheels on internet PC then copy here:
-    echo         pip download -r requirements.txt -d wheels --platform win_amd64 --python-version 311 --only-binary :all:
-    echo         pip install -r requirements.txt --no-index --find-links wheels
     pause
     exit /b 1
   )
