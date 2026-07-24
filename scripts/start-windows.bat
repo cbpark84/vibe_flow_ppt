@@ -22,13 +22,16 @@ call venv\Scripts\activate.bat
 
 python -c "import arq" >nul 2>&1
 if %errorlevel% neq 0 (
-  echo [1/5] Installing Python packages...
-  echo        If this fails, configure pip to use your Nexus registry:
-  echo        pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/
-  echo        pip config set global.trusted-host nexus.sdsdev.co.kr
-  pip install -r requirements.txt
+  echo [1/5] Configuring pip for Nexus...
+  pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/ >nul 2>&1
+  pip config set global.trusted-host nexus.sdsdev.co.kr >nul 2>&1
+  echo [1/5] Installing Python packages ^(prefer-binary^)...
+  pip install -r requirements.txt --prefer-binary --trusted-host nexus.sdsdev.co.kr
   if %errorlevel% neq 0 (
-    echo [ERROR] pip install failed. Check your network/Nexus settings above.
+    echo [ERROR] pip install failed.
+    echo         Option: download wheels on internet PC then copy here:
+    echo         pip download -r requirements.txt -d wheels --platform win_amd64 --python-version 311 --only-binary :all:
+    echo         pip install -r requirements.txt --no-index --find-links wheels
     pause
     exit /b 1
   )

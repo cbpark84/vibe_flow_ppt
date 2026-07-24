@@ -32,13 +32,16 @@ if (-not (Test-Path "venv\Scripts\Activate.ps1")) {
 
 $arqCheck = python -c "import arq" 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Step "1/5" "Installing Python packages..."
-    Write-Host "  If this fails, configure pip for Nexus:" -ForegroundColor Gray
-    Write-Host "  pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/" -ForegroundColor Gray
-    Write-Host "  pip config set global.trusted-host nexus.sdsdev.co.kr" -ForegroundColor Gray
-    pip install -r requirements.txt
+    Write-Host "  Configuring pip for Nexus..." -ForegroundColor Gray
+    pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/ | Out-Null
+    pip config set global.trusted-host nexus.sdsdev.co.kr | Out-Null
+    Write-Step "1/5" "Installing Python packages (prefer-binary)..."
+    pip install -r requirements.txt --prefer-binary --trusted-host nexus.sdsdev.co.kr
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "[ERROR] pip install failed. Check network/Nexus settings." -ForegroundColor Red
+        Write-Host "[ERROR] pip install failed." -ForegroundColor Red
+        Write-Host "  Option: download wheels on internet PC:" -ForegroundColor Yellow
+        Write-Host "  pip download -r requirements.txt -d wheels --platform win_amd64 --python-version 311 --only-binary :all:" -ForegroundColor Gray
+        Write-Host "  pip install -r requirements.txt --no-index --find-links wheels" -ForegroundColor Gray
         exit 1
     }
 } else {
