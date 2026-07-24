@@ -6,6 +6,7 @@ echo ==========================================
 
 cd /d "%~dp0.."
 set "PROJ=%CD%"
+set "SCRIPTS=%~dp0"
 
 if not exist ".env" (
   echo [WARN] .env not found. Copying .env.example...
@@ -26,8 +27,6 @@ if %errorlevel% neq 0 (
   echo [1/5] Configuring pip for Nexus...
   pip config set global.index-url http://nexus.sdsdev.co.kr:8081/repository/pypi-public/simple/ >nul 2>&1
   pip config set global.trusted-host nexus.sdsdev.co.kr >nul 2>&1
-  echo        Tip: if packages are missing, ask IT for pypi-group URL
-  echo        e.g. http://nexus.sdsdev.co.kr:8081/repository/pypi-all/simple/
   echo [1/5] Installing Python packages...
   pip install -r requirements.txt --prefer-binary --find-links wheels --trusted-host nexus.sdsdev.co.kr
   if %errorlevel% neq 0 (
@@ -75,18 +74,21 @@ pause
 exit /b 1
 
 :redis_done
+echo Waiting for Redis (3 sec)...
+timeout /t 3 /nobreak > nul
 
 echo [3/5] Starting ARQ Worker...
-start "vibe_flow_ppt - ARQ Worker" cmd /k "cd /d %PROJ% && venv\Scripts\activate.bat && set PYTHONPATH=%PROJ% && python -m arq engine.worker.settings.WorkerSettings"
-
-echo [4/5] Starting FastAPI server...
-start "vibe_flow_ppt - FastAPI" cmd /k "cd /d %PROJ% && venv\Scripts\activate.bat && set PYTHONPATH=%PROJ% && uvicorn api.main:app --host 0.0.0.0 --port 8000"
-
-echo Waiting for server (5 sec)...
+start "vibe_flow_ppt - ARQ Worker" cmd /k ""%SCRIPTS%run-arq.bat" "%PROJ%""
+echo Waiting for ARQ Worker (5 sec)...
 timeout /t 5 /nobreak > nul
 
+echo [4/5] Starting FastAPI server...
+start "vibe_flow_ppt - FastAPI" cmd /k ""%SCRIPTS%run-api.bat" "%PROJ%""
+echo Waiting for FastAPI (8 sec)...
+timeout /t 8 /nobreak > nul
+
 echo [5/5] Starting Next.js web app...
-start "vibe_flow_ppt - Next.js" cmd /k "cd /d %PROJ%\web && npm run dev"
+start "vibe_flow_ppt - Next.js" cmd /k ""%SCRIPTS%run-web.bat" "%PROJ%\web""
 
 timeout /t 5 /nobreak > nul
 start http://localhost:3000
