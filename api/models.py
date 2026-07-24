@@ -72,3 +72,21 @@ class HealthResponse(BaseModel):
     status: str
     version: str = "0.3.0"
     marp_worker: bool = False
+    redis: bool = False
+
+
+# ── 잡 큐 모델 ─────────────────────────────────────────────────
+class JobQueuedResponse(BaseModel):
+    job_id: str
+    status: Literal["queued"] = "queued"
+    message: str = "생성 작업이 대기열에 추가됐습니다."
+
+
+class JobResultResponse(BaseModel):
+    job_id: str
+    status: Literal["queued", "in_progress", "completed", "failed"]
+    result: Optional[GenerateResponse] = None
+    error: Optional[str] = None
+    enqueue_time: Optional[float] = None
+    start_time: Optional[float] = None
+    finish_time: Optional[float] = None
