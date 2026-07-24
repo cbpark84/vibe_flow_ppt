@@ -1,8 +1,8 @@
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 python-multipart==0.0.12
-pydantic==2.10.3
-pydantic-settings==2.6.1
+pydantic==2.13.4
+pydantic-settings==2.11.0
 litellm==1.55.8
 python-pptx==1.0.2
 python-dotenv==1.0.1
@@ -14,3 +14,7 @@ colorthief==0.2.1
 palettable==3.3.3
 Pillow>=10.4.0
 Jinja2>=3.1.4
+
+# Phase 3 - Async Job Queue
+arq==0.26.1
+redis[hiredis]>=5.0.0
