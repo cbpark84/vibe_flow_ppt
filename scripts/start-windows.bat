@@ -5,6 +5,7 @@ echo   vibe_flow_ppt Start (Windows)
 echo ==========================================
 
 cd /d "%~dp0.."
+set "PROJ=%CD%"
 
 if not exist ".env" (
   echo [WARN] .env not found. Copying .env.example...
@@ -76,16 +77,16 @@ exit /b 1
 :redis_done
 
 echo [3/5] Starting ARQ Worker...
-start "vibe_flow_ppt - ARQ Worker" cmd /k "cd /d %CD% && venv\Scripts\activate.bat && python -m arq engine.worker.settings.WorkerSettings"
+start "vibe_flow_ppt - ARQ Worker" cmd /k "cd /d %PROJ% && venv\Scripts\activate.bat && set PYTHONPATH=%PROJ% && python -m arq engine.worker.settings.WorkerSettings"
 
 echo [4/5] Starting FastAPI server...
-start "vibe_flow_ppt - FastAPI" cmd /k "cd /d %CD% && venv\Scripts\activate.bat && uvicorn api.main:app --host 0.0.0.0 --port 8000"
+start "vibe_flow_ppt - FastAPI" cmd /k "cd /d %PROJ% && venv\Scripts\activate.bat && set PYTHONPATH=%PROJ% && uvicorn api.main:app --host 0.0.0.0 --port 8000"
 
 echo Waiting for server (5 sec)...
 timeout /t 5 /nobreak > nul
 
 echo [5/5] Starting Next.js web app...
-start "vibe_flow_ppt - Next.js" cmd /k "cd /d %CD%\web && npm run dev"
+start "vibe_flow_ppt - Next.js" cmd /k "cd /d %PROJ%\web && npm run dev"
 
 timeout /t 5 /nobreak > nul
 start http://localhost:3000

@@ -94,14 +94,14 @@ if (-not $redisDone) {
 Write-Step "3/5" "ARQ 워커 시작..."
 Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
-    "Set-Location '$Root'; venv\Scripts\Activate.ps1; Write-Host 'ARQ Worker 시작' -ForegroundColor Cyan; python -m arq engine.worker.settings.WorkerSettings"
+    "Set-Location '$Root'; venv\Scripts\Activate.ps1; `$env:PYTHONPATH='$Root'; Write-Host 'ARQ Worker' -ForegroundColor Cyan; python -m arq engine.worker.settings.WorkerSettings"
 ) -WindowStyle Normal
 Write-OK "ARQ 워커 창 열림"
 
 Write-Step "4/5" "FastAPI 서버 시작..."
 Start-Process $PS -ArgumentList @(
     "-NoExit", "-Command",
-    "Set-Location '$Root'; venv\Scripts\Activate.ps1; Write-Host 'FastAPI 시작' -ForegroundColor Cyan; uvicorn api.main:app --host 0.0.0.0 --port 8000"
+    "Set-Location '$Root'; venv\Scripts\Activate.ps1; `$env:PYTHONPATH='$Root'; Write-Host 'FastAPI' -ForegroundColor Cyan; uvicorn api.main:app --host 0.0.0.0 --port 8000"
 ) -WindowStyle Normal
 Write-OK "FastAPI 창 열림"
 
